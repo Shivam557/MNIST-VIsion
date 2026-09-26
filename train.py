@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 from torch import nn
 
 
-
 # -------------------------
 # 1. Dataset
 # -------------------------
@@ -55,101 +54,122 @@ class MNISTModel(nn.Module):
 # 3. Model, Loss, Optimizer
 # -------------------------
 
-model = MNISTModel()
+if __name__ == "__main__":
 
-loss_fn = nn.CrossEntropyLoss()
+    model = MNISTModel()
 
-optimizer = torch.optim.Adam(
-    model.parameters(),
-    lr=1e-3
-)
+    loss_fn = nn.CrossEntropyLoss()
 
-
-# -------------------------
-# 4. Training
-# -------------------------
-
-for epoch in range(5):
-
-    total_loss = 0
-
-    for images, labels in train_loader:
-
-        # Clear previous gradients
-        optimizer.zero_grad()
-
-        # Forward pass
-        output = model(images)
-
-        # Calculate loss
-        loss = loss_fn(output, labels)
-
-        # Add this batch's loss
-        total_loss += loss.item()
-
-        # Backpropagation
-        loss.backward()
-
-        # Update weights
-        optimizer.step()
-
-    # Average loss for this epoch
-    average_loss = total_loss / len(train_loader)
-
-    # print(f"Epoch {epoch + 1}, Loss: {average_loss:.4f}")
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=1e-3
+    )
 
 
-# -------------------------
-# 5. Test Dataset
-# -------------------------
+    # -------------------------
+    # 4. Training
+    # -------------------------
 
-test_dataset = MNIST(
-    root="./data",
-    train=False,
-    download=True,
-    transform=convertTensor
-)
+    for epoch in range(5):
 
-test_loader = DataLoader(
-    test_dataset,
-    batch_size=64,
-    shuffle=False
-)
+        total_loss = 0
 
-image, label = test_dataset[0]
-image = image.unsqueeze(0)
+        for images, labels in train_loader:
 
-with torch.no_grad():
-    output = model(image)
+            # Clear previous gradients
+            optimizer.zero_grad()
 
-prediction = output.argmax(dim=1).item()
+            # Forward pass
+            output = model(images)
 
-# print(f"Predicted: {prediction}, Actual: {label}")
+            # Calculate loss
+            loss = loss_fn(output, labels)
 
-# -------------------------
-# 6. Testing / Accuracy
-# -------------------------
+            # Add this batch's loss
+            total_loss += loss.item()
 
-correct = 0
+            # Backpropagation
+            loss.backward()
 
-with torch.no_grad():
+            # Update weights
+            optimizer.step()
+
+        # Average loss for this epoch
+        average_loss = total_loss / len(train_loader)
+
+        print(f"Epoch {epoch + 1}, Loss: {average_loss:.4f}")
+
+
+    # -------------------------
+    # 5. Test Dataset
+    # -------------------------
+
+    test_dataset = MNIST(
+        root="./data",
+        train=False,
+        download=True,
+        transform=convertTensor
+    )
+
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=64,
+        shuffle=False
+    )
+
+
+    # -------------------------
+    # 6. Testing / Accuracy
+    # -------------------------
+
+    correct = 0
+
+    with torch.no_grad():
+
+        for images, labels in test_loader:
+
+            output = model(images)
+
+            predictions = output.argmax(dim=1)
+
+            correct += (predictions == labels).sum().item()
+
+
+    total = len(test_dataset)
+
+    accuracy = correct / total * 100
+
+    print(f"Test Accuracy: {accuracy:.2f}%")
+
+
+    # -------------------------
+    # 7. Test 5 Different Images
+    # -------------------------
 
     for i in range(5):
+
         image, label = test_dataset[i]
+
         image = image.unsqueeze(0)
 
         with torch.no_grad():
+
             output = model(image)
 
         prediction = output.argmax(dim=1).item()
 
-        print(f"Image {i + 1}: Predicted = {prediction}, Actual = {label}")
+        print(
+            f"Image {i + 1}: "
+            f"Predicted = {prediction}, "
+            f"Actual = {label}"
+        )
 
-total = len(test_dataset)
 
-accuracy = correct / total * 100
+    # -------------------------
+    # 8. Save Model
+    # -------------------------
 
-print(f"Test Accuracy: {accuracy:.2f}%")
+    torch.save(model.state_dict(), "mnist_model.pth")
 
 
 # print(output.shape);
