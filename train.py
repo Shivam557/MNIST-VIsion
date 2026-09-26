@@ -1,11 +1,17 @@
+
 import torch
 import torchvision
 from torchvision.datasets import MNIST
 from torchvision import transforms
-# import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-
 from torch import nn
+
+
+
+# -------------------------
+# 1. Dataset
+# -------------------------
+
 convertTensor = transforms.ToTensor()
 
 train_dataset = MNIST(
@@ -14,6 +20,7 @@ train_dataset = MNIST(
     download=True,
     transform=convertTensor
 )
+
 train_loader = DataLoader(
     train_dataset,
     batch_size=64,
@@ -21,75 +28,135 @@ train_loader = DataLoader(
 )
 
 
-# print(len(train_dataset))
-image, label = train_dataset[5]
-
-# plt.imshow(image.squeeze(), cmap="gray")
-# plt.savefig("mnist_sample.png")    // we can see the image through the matplotlib
-images, labels = next(iter(train_loader))
-
-
-
-flatten = nn.Flatten();
-flattened_images = flatten(images);
-
-linear1 = nn.Linear(784, 128);
-
-relu = nn.ReLU();
-
-
+# -------------------------
+# 2. Model
+# -------------------------
 
 class MNISTModel(nn.Module):
-    def __init__(self):
-        super().__init__();
-        self.flatten = nn.Flatten();
-        self.linear1 = nn.Linear(784, 128);
-        self.linear2 = nn.Linear(128, 10)
-        self.relu = nn.ReLU()
 
+    def __init__(self):
+        super().__init__()
+
+        self.flatten = nn.Flatten()
+        self.linear1 = nn.Linear(784, 128)
+        self.relu = nn.ReLU()
+        self.linear2 = nn.Linear(128, 10)
 
     def forward(self, x):
         x = self.flatten(x)
         x = self.linear1(x)
         x = self.relu(x)
         x = self.linear2(x)
-        
+
         return x
 
-model = MNISTModel();
-output = model(images);
 
-loss_fn = nn.CrossEntropyLoss();
+# -------------------------
+# 3. Model, Loss, Optimizer
+# -------------------------
 
-optimizer.zero_grad();
-loss = loss_fn(output, labels);
+model = MNISTModel()
 
-loss.backward();
+loss_fn = nn.CrossEntropyLoss()
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3);
+optimizer = torch.optim.Adam(
+    model.parameters(),
+    lr=1e-3
+)
 
+
+# -------------------------
+# 4. Training
+# -------------------------
 
 for epoch in range(5):
+
+    total_loss = 0
+
     for images, labels in train_loader:
-        total_loss = 0;
-        total_loss = total_loss + loss;
-    #batch
-    #zero grad
-        optimizer.zero_grad(); 
-    #prediction
-        output = model(images);
-      #loss
-        loss = loss_fn(output, labels);
-      #backward() -> gradients
-        loss.backward(); 
-        optimizer.step();  #step() - weights update
+
+        # Clear previous gradients
+        optimizer.zero_grad()
+
+        # Forward pass
+        output = model(images)
+
+        # Calculate loss
+        loss = loss_fn(output, labels)
+
+        # Add this batch's loss
+        total_loss += loss.item()
+
+        # Backpropagation
+        loss.backward()
+
+        # Update weights
+        optimizer.step()
+
+    # Average loss for this epoch
+    average_loss = total_loss / len(train_loader)
+
+    # print(f"Epoch {epoch + 1}, Loss: {average_loss:.4f}")
 
 
+# -------------------------
+# 5. Test Dataset
+# -------------------------
 
-print(output.shape);
+test_dataset = MNIST(
+    root="./data",
+    train=False,
+    download=True,
+    transform=convertTensor
+)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=64,
+    shuffle=False
+)
+
+image, label = test_dataset[0]
+image = image.unsqueeze(0)
+
+with torch.no_grad():
+    output = model(image)
+
+prediction = output.argmax(dim=1).item()
+
+# print(f"Predicted: {prediction}, Actual: {label}")
+
+# -------------------------
+# 6. Testing / Accuracy
+# -------------------------
+
+correct = 0
+
+with torch.no_grad():
+
+    for i in range(5):
+        image, label = test_dataset[i]
+        image = image.unsqueeze(0)
+
+        with torch.no_grad():
+            output = model(image)
+
+        prediction = output.argmax(dim=1).item()
+
+        print(f"Image {i + 1}: Predicted = {prediction}, Actual = {label}")
+
+total = len(test_dataset)
+
+accuracy = correct / total * 100
+
+print(f"Test Accuracy: {accuracy:.2f}%")
+
+
+# print(output.shape);
 # print(images.shape);
 # print(flattened_images.shape);
 # print(convertTensor)
+
 
 #some concepts we need
 # loss
